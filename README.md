@@ -25,9 +25,9 @@ git clone https://github.com/tellsiddh/ros-multirobot-search-rescue.git
 ```sh
 catkin_make
 ```
-1. Launch a world with gazebo_ros. For example:
+1. Launch the Gazebo earthquake world.
 ```sh
-roslaunch hector_gazebo_worlds small_indoor_scenario.launch
+roslaunch rtab_package earthquake.launch
 ```
 2. Launch a quadrotor with an RGBD camera, 2D laser, and odometry.
 ```sh
