@@ -1,0 +1,202 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+    <world name="default">
+        <!-- A global light source -->
+        <include>
+            <uri>model://sun</uri>
+        </include>
+
+        <!-- A ground plane -->
+        <include>
+            <uri>model://ground_plane</uri>
+        </include>
+
+        <gui fullscreen='0'>
+        <camera name='user_camera'>
+            <pose>0.282984 -7.13737 34.4767 -0 1.36364 1.5722</pose>
+            <view_controller>orbit</view_controller>
+            <projection_type>perspective</projection_type>
+        </camera>
+        </gui>
+
+        <include>
+            <uri>model://Room</uri>
+        </include>
+
+        <population name="box_population1">
+            <model name="box">
+            <pose>0 0 0.5 0 0 0</pose>
+                <link name="link">
+                    <collision name="collision">
+                    <geometry>
+                        <box>
+                        <size>1 1 1</size>
+                        </box>
+                    </geometry>
+                    </collision>
+                    <visual name="visual">
+                    <geometry>
+                        <box>
+                        <size>1 1 1</size>
+                        </box>
+                    </geometry>
+                    </visual>
+                </link>
+            </model>
+            <pose>7 -5 0 0 0 0</pose>
+            <distribution>
+                <type>grid</type>
+                <rows>2</rows>
+                <cols>3</cols>
+                <step>2 2 0</step>
+            </distribution>
+        </population>
+
+        <model name="big_box">
+        <pose>-3 -7 1.5 0 0 0.89</pose>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <box>
+                <size>3 3 3</size>
+                </box>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <box>
+                <size>3 3 3</size>
+                </box>
+            </geometry>
+            </visual>
+        </link>
+        <static>1</static>
+        </model>
+
+        <population name="sphere_population1">
+            <model name="sphere">
+            <pose>0 0 0.5 0 0 0</pose>
+                <link name="link">
+                    <collision name="collision">
+                    <geometry>
+                        <sphere>
+                        <radius>0.5</radius>
+                        </sphere>
+                    </geometry>
+                    </collision>
+                    <visual name="visual">
+                    <geometry>
+                        <sphere>
+                        <radius>0.5</radius>
+                        </sphere>
+                    </geometry>
+                    </visual>
+                </link>
+            </model>
+            <pose>7 5 0 0 0 0</pose>
+            <distribution>
+                <type>grid</type>
+                <rows>2</rows>
+                <cols>3</cols>
+                <step>2 2 0</step>
+            </distribution>
+        </population>
+
+        <model name="big_sphere">
+        <pose>-3 7 1.5 0 0 0</pose>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <sphere>
+                <radius>1.5</radius>
+                </sphere>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <sphere>
+                <radius>1.5</radius>
+                </sphere>
+            </geometry>
+            </visual>
+        </link>
+        <static>1</static>
+        </model>
+
+        <model name="cylinder1">
+        <pose>-6 -1.5 1.5 0 0 0</pose>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>3.0</length>
+                </cylinder>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>3.0</length>
+                </cylinder>
+            </geometry>
+            <material>
+                <script>Gazebo/WoodPallet</script>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+        <model name="cylinder2">
+        <pose>-2 1.5 1.5 0 0 0</pose>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>3.0</length>
+                </cylinder>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>3.0</length>
+                </cylinder>
+            </geometry>
+            <material>
+                <script>Gazebo/WoodPallet</script>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+        <model name="cylinder3">
+        <pose>7 0 0.75 0 0 0</pose>
+        <link name="link">
+            <collision name="collision">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>1.5</length>
+                </cylinder>
+            </geometry>
+            </collision>
+            <visual name="visual">
+            <geometry>
+                <cylinder>
+                <radius>0.5</radius>
+                <length>1.5</length>
+                </cylinder>
+            </geometry>
+            <material>
+                <script>Gazebo/WoodPallet</script>
+            </material>
+            </visual>
+        </link>
+        </model>
+
+    </world>
+</sdf>
