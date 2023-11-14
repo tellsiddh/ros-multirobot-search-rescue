@@ -1,0 +1,6 @@
+<launch>
+
+  <include file="$(find rtab_package)/launch/maze.launch"> </include>
+  <include file="$(find rtab_package)/launch/spawn2drones.launch"> </include>
+
+</launch>

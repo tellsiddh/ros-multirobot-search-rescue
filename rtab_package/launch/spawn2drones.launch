@@ -13,7 +13,7 @@
       <arg name="model" value="$(find hector_quadrotor_description)/urdf/quadrotor_with_asus_with_hokuyo_utm30lx.gazebo.xacro"/>
       <arg name="tf_prefix" default="uav1"/>
       <arg name="x" default="0.0"/>
-      <arg name="y" default="-1.0"/>
+      <arg name="y" default="-0.6"/>
       <arg name="z" default="0.3"/>   
       <arg name="use_ground_truth_for_tf" value="$(arg use_ground_truth_for_tf)"/>
       <arg name="use_ground_truth_for_control" value="$(arg use_ground_truth_for_control)"/>
@@ -27,7 +27,7 @@
       <arg name="model" value="$(find hector_quadrotor_description)/urdf/quadrotor_with_asus_with_hokuyo_utm30lx.gazebo.xacro"/>
       <arg name="tf_prefix" default="uav2"/>
       <arg name="x" default="0.0"/>
-      <arg name="y" default="1.0"/>
+      <arg name="y" default="0.6"/>
       <arg name="z" default="0.3"/>   
       <arg name="use_ground_truth_for_tf" value="$(arg use_ground_truth_for_tf)"/>
       <arg name="use_ground_truth_for_control" value="$(arg use_ground_truth_for_control)"/>
