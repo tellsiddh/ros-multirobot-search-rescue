@@ -43,9 +43,13 @@ roslaunch rtab_package map_merge2.launch
 ```sh
 rosrun rviz rviz -d src/ros-multirobot-search-rescue/rtab_package/rviz/map_merge.rviz
 ```
-4. Run the teleop_twist_keyboard to move drone 1. To move drone 2, replace uav1 with uav2.
+4. Run the teleop_twist_keyboard to manually move drone 1. To move drone 2, replace uav1 with uav2.
 ```sh
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py cmd_vel:=uav1/cmd_vel
+```
+Alternatively, you can run autonomous liftoff and obstacle avoidance. Arg z is the liftoff height, and delay is the time before obstacle avoidance is ran.
+```sh
+roslaunch move_package lift_avoid.launch ns:=uav1 z:=0.5 delay:=3
 ```
 
 ### How to Use (One Drone)
@@ -67,6 +71,10 @@ roslaunch rtabmap_demos demo_turtlebot_rviz.launch
 4. Run the teleop_twist_keyboard to move the drone.
 ```sh
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
+```
+Alternatively, you can run autonomous liftoff and obstacle avoidance.
+```sh
+roslaunch move_package lift_avoid.launch z:=0.5 delay:=3
 ```
 
 ### Post-processing
