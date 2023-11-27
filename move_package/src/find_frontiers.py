@@ -1,0 +1,92 @@
+#!/usr/bin/env python
+
+import rospy
+from nav_msgs.msg import OccupancyGrid
+import numpy as np
+import cv2
+from copy import copy
+
+class Uncharter:
+    def __init__(self):
+
+        rospy.init_node('uncharter', anonymous=False)
+
+        # Create subscribers for the map and initialpose topics
+        rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+
+        # Initialize variables to store map information
+        self.resolution = None
+        self.x_origin = None
+        self.y_origin = None
+        self.width = None
+        self.height = None
+        self.data = None
+
+    def map_callback(self, msg):
+        self.resolution = msg.info.resolution
+        self.x_origin = msg.info.origin.position.x
+        self.y_origin = msg.info.origin.position.y
+        self.width = msg.info.width
+        self.height = msg.info.height
+        self.data = msg.data
+
+        self.display_map()
+
+    def display_map(self):
+        img = np.zeros((self.height, self.width, 1), dtype=np.uint8)
+        for i in range(0, self.height):
+            for j in range(0, self.width):
+                img_value = self.data[i * self.width + j]
+                if img_value == 100:
+                    img[i, j] = 0
+                elif img_value == 0:
+                    img[i, j] = 255
+                elif img_value == -1:
+                    img[i, j] = 205
+
+        o=cv2.inRange(img,0,1)
+        edges = cv2.Canny(img,0,255)
+        contours, hierarchy = cv2.findContours(o,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(o,contours,-1,(255,255,255),5)
+        o=cv2.bitwise_not(o)
+        res = cv2.bitwise_and(o,edges)
+
+        frontier=copy(res)
+        contours, hierarchy = cv2.findContours(frontier,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(frontier,contours,-1,(255,255,255),2)
+
+        contours, hierarchy = cv2.findContours(frontier,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+        ## TODO: publish all_pts to a topic
+        all_pts=[]
+        if len(contours)>0:
+            upto = len(contours)-1
+            i=0
+            maxx = 0
+            maxind = 0
+            for i in range(0,len(contours)):
+                cnt = contours[i]
+                M = cv2.moments(cnt)
+                try:
+                    cx = int(M['m10']/M['m00'])
+                    cy = int(M['m01']/M['m00'])
+                    cv2.circle(frontier, (cx, cy), 5, (128, 128, 128), -1)
+                    xr = cx*self.resolution + self.x_origin
+                    yr = cy*self.resolution + self.y_origin
+                    pt = [np.array([xr,yr])]
+                    if len(all_pts)>0:
+                        all_pts = np.vstack([all_pts,pt])
+                    else:
+                        all_pts=pt
+                except:
+                    pass
+        
+        cv2.imshow('map',img)
+        cv2.imshow('frontiers',frontier)
+        cv2.waitKey(1)
+
+    def run(self):
+        rospy.spin()
+
+if __name__ == '__main__':
+    Uncharter().run()
