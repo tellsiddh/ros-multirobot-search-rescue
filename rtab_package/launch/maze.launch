@@ -1,0 +1,9 @@
+<launch>
+
+  <env name = "GAZEBO_MODEL_PATH" value = "$(find rtab_package)/models"/>
+
+  <include file="$(find hector_gazebo_worlds)/launch/start.launch">
+    <arg name="world" value="$(find rtab_package)/worlds/maze.world"/>
+  </include>
+
+</launch>

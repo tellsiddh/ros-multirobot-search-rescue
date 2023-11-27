@@ -22,8 +22,8 @@ class Avoider:
         rospy.Subscriber(self.ns + '/scan', LaserScan, self.scan_callback)
         rospy.on_shutdown(self.shutdown_callback)
 
-        self.repulsion_factor = 1.2
-        self.obstacle_range = 1.5
+        self.repulsion_factor = 5
+        self.obstacle_range = 10
 
     def repulsive_force(self, d_obstacle):
         # Repulsive potential

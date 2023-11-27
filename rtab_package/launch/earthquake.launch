@@ -2,7 +2,7 @@
 
 <launch>
   <include file="$(find hector_gazebo_worlds)/launch/start.launch">
-   <arg name="world" value="$(find rtab_package)/worlds/Earthquake/model.sdf"/> 
+   <arg name="world" value="$(find rtab_package)/models/Earthquake/model.sdf"/> 
   </include>
 
 </launch>
