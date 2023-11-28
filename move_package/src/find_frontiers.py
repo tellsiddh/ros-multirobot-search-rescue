@@ -2,17 +2,23 @@
 
 import rospy
 from nav_msgs.msg import OccupancyGrid
+from std_msgs.msg import Float32MultiArray, MultiArrayDimension
 import numpy as np
 import cv2
 from copy import copy
+import sys
 
 class Uncharter:
-    def __init__(self):
+    def __init__(self,ns):
+        
+        self.ns = ns
 
-        rospy.init_node('uncharter', anonymous=False)
+        rospy.init_node(self.ns + 'uncharter', anonymous=False)
 
         # Create subscribers for the map and initialpose topics
-        rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        rospy.Subscriber(self.ns + '/map', OccupancyGrid, self.map_callback)
+
+        self.frontier_pub = rospy.Publisher(self.ns + '/frontiers', Float32MultiArray, queue_size=10)
 
         # Initialize variables to store map information
         self.resolution = None
@@ -44,49 +50,65 @@ class Uncharter:
                 elif img_value == -1:
                     img[i, j] = 205
 
-        o=cv2.inRange(img,0,1)
-        edges = cv2.Canny(img,0,255)
-        contours, hierarchy = cv2.findContours(o,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(o,contours,-1,(255,255,255),5)
-        o=cv2.bitwise_not(o)
-        res = cv2.bitwise_and(o,edges)
+        
 
-        frontier=copy(res)
-        contours, hierarchy = cv2.findContours(frontier,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(frontier,contours,-1,(255,255,255),2)
+        o = cv2.inRange(img, 0, 1)
+        edges = cv2.Canny(img, 0, 255)
+        contours, hierarchy = cv2.findContours(o, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(o, contours, -1, (255, 255, 255), 5)
+        o = cv2.bitwise_not(o)
+        res = cv2.bitwise_and(o, edges)
 
-        contours, hierarchy = cv2.findContours(frontier,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        frontier = copy(res)
+        contours, hierarchy = cv2.findContours(frontier, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(frontier, contours, -1, (255, 255, 255), 2)
+
+        contours, hierarchy = cv2.findContours(frontier, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         ## TODO: publish all_pts to a topic
-        all_pts=[]
-        if len(contours)>0:
-            upto = len(contours)-1
-            i=0
-            maxx = 0
-            maxind = 0
-            for i in range(0,len(contours)):
-                cnt = contours[i]
+        all_pts = []
+        area_threshold = 100  # Adjust this threshold as needed
+
+        for i in range(0, len(contours)):
+            cnt = contours[i]
+            area = cv2.contourArea(cnt)
+            if area > area_threshold:
                 M = cv2.moments(cnt)
                 try:
-                    cx = int(M['m10']/M['m00'])
-                    cy = int(M['m01']/M['m00'])
-                    cv2.circle(frontier, (cx, cy), 5, (128, 128, 128), -1)
-                    xr = cx*self.resolution + self.x_origin
-                    yr = cy*self.resolution + self.y_origin
-                    pt = [np.array([xr,yr])]
-                    if len(all_pts)>0:
-                        all_pts = np.vstack([all_pts,pt])
+                    cx = int(M['m10'] / M['m00'])
+                    cy = int(M['m01'] / M['m00'])
+                    cv2.circle(img, (cx, cy), 5, (128, 128, 128), -1)
+                    xr = cx * self.resolution + self.x_origin
+                    yr = cy * self.resolution + self.y_origin
+                    pt = [np.array([xr, yr])]
+                    if len(all_pts) > 0:
+                        all_pts = np.vstack([all_pts, pt])
                     else:
-                        all_pts=pt
+                        all_pts = pt
                 except:
                     pass
         
-        cv2.imshow('map',img)
-        cv2.imshow('frontiers',frontier)
+        if np.size(all_pts) > 1:
+            pub_msg = Float32MultiArray()
+            if np.size(all_pts) > 2:
+                pub_msg.data = all_pts.flatten()
+            else:
+                pub_msg.data = all_pts
+            pub_msg.layout.dim = [MultiArrayDimension(), MultiArrayDimension()]
+            pub_msg.layout.dim[0].label = "points"
+            pub_msg.layout.dim[0].size = np.shape(all_pts)[0]
+            pub_msg.layout.dim[1].label = "dimensions"
+            pub_msg.layout.dim[1].size = np.shape(all_pts)[1]
+            self.frontier_pub.publish(pub_msg)
+
+        cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
         cv2.waitKey(1)
 
     def run(self):
         rospy.spin()
 
 if __name__ == '__main__':
-    Uncharter().run()
+    
+    ns = sys.argv[1] if len(sys.argv) >= 2 else ""
+    
+    Uncharter(ns).run()
