@@ -7,6 +7,7 @@ import numpy as np
 import cv2
 from copy import copy
 import sys
+from rospy.timer import TimerEvent
 
 class Uncharter:
     def __init__(self,ns):
@@ -27,6 +28,10 @@ class Uncharter:
         self.width = None
         self.height = None
         self.data = None
+        self.all_pts = None
+
+        # Set up a timer for periodically publishing the current frontier
+        self.timer = rospy.Timer(rospy.Duration(1.0), self.publish_current_frontiers)
 
     def map_callback(self, msg):
         self.resolution = msg.info.resolution
@@ -50,8 +55,6 @@ class Uncharter:
                 elif img_value == -1:
                     img[i, j] = 205
 
-        
-
         o = cv2.inRange(img, 0, 1)
         edges = cv2.Canny(img, 0, 255)
         contours, hierarchy = cv2.findContours(o, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -65,7 +68,6 @@ class Uncharter:
 
         contours, hierarchy = cv2.findContours(frontier, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        ## TODO: publish all_pts to a topic
         all_pts = []
         area_threshold = 100  # Adjust this threshold as needed
 
@@ -88,21 +90,23 @@ class Uncharter:
                 except:
                     pass
         
-        if np.size(all_pts) > 1:
-            pub_msg = Float32MultiArray()
-            if np.size(all_pts) > 2:
-                pub_msg.data = all_pts.flatten()
-            else:
-                pub_msg.data = all_pts
-            pub_msg.layout.dim = [MultiArrayDimension(), MultiArrayDimension()]
-            pub_msg.layout.dim[0].label = "points"
-            pub_msg.layout.dim[0].size = np.shape(all_pts)[0]
-            pub_msg.layout.dim[1].label = "dimensions"
-            pub_msg.layout.dim[1].size = np.shape(all_pts)[1]
-            self.frontier_pub.publish(pub_msg)
-
+        self.all_pts = all_pts
         cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
         cv2.waitKey(1)
+
+    def publish_current_frontiers(self,event:TimerEvent):
+        if self.all_pts is not None and np.size(self.all_pts) > 1:
+            pub_msg = Float32MultiArray()
+            if np.size(self.all_pts) > 2:
+                pub_msg.data = self.all_pts.flatten()
+            else:
+                pub_msg.data = self.all_pts
+            pub_msg.layout.dim = [MultiArrayDimension(), MultiArrayDimension()]
+            pub_msg.layout.dim[0].label = "points"
+            pub_msg.layout.dim[0].size = np.shape(self.all_pts)[0]
+            pub_msg.layout.dim[1].label = "dimensions"
+            pub_msg.layout.dim[1].size = np.shape(self.all_pts)[1]
+            self.frontier_pub.publish(pub_msg)
 
     def run(self):
         rospy.spin()
