@@ -76,7 +76,7 @@ roslaunch move_package frontier_rviz.launch
 rosrun move_package find_frontiers.py
 ```
 ```sh
-rosrun move_package goto_frotiers.py
+rosrun move_package goto_frontiers.py
 ```
 5. Move the drone a bit to initialize frontier exploration. Also, move the drone a bit in the right direction if it ever appears stuck.
 ```sh
