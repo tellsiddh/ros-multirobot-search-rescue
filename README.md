@@ -57,24 +57,30 @@ roslaunch move_package lift_avoid.launch ns:=uav1 z:=0.5 delay:=3
 ```sh
 roslaunch rtab_package maze.launch
 ```
-2. Launch one drone.
+2. Launch one drone and lift it.
 ```sh
 roslaunch hector_quadrotor_gazebo spawn_quadrotor_with_asus_with_laser.launch
+```
+```sh
+rosrun move_package liftoff.py
 ```
 3. Launch the rtabmap node, specifying the database_path like above if needed. Then, visualize it in rviz. 
 ```sh
 roslaunch rtab_package mapping.launch
 ```
 ```sh
-roslaunch rtabmap_demos demo_turtlebot_rviz.launch
+roslaunch move_package frontier_rviz.launch
 ```
-4. Run the teleop_twist_keyboard to move the drone.
+4. Run the frontier exploration nodes.
+```sh
+rosrun move_package find_frontiers.py
+```
+```sh
+rosrun move_package goto_frotiers.py
+```
+5. Move the drone a bit to initialize frontier exploration. Also, move the drone a bit in the right direction if it ever appears stuck.
 ```sh
 rosrun teleop_twist_keyboard teleop_twist_keyboard.py
-```
-Alternatively, you can run autonomous liftoff and obstacle avoidance.
-```sh
-roslaunch move_package lift_avoid.launch z:=0.5 delay:=3
 ```
 
 ### Post-processing
