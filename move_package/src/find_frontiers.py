@@ -14,10 +14,13 @@ class Uncharter:
         
         self.ns = ns
 
-        rospy.init_node(self.ns + 'uncharter', anonymous=False)
+        rospy.init_node(ns + 'uncharter', anonymous=False)
 
         # Create subscribers for the map and initialpose topics
-        rospy.Subscriber(self.ns + '/map', OccupancyGrid, self.map_callback)
+        if self.ns == "":
+            rospy.Subscriber(self.ns + '/map', OccupancyGrid, self.map_callback)
+        else:
+            rospy.Subscriber('/rtabmap/' + self.ns + '/map', OccupancyGrid, self.map_callback)
 
         self.frontier_pub = rospy.Publisher(self.ns + '/frontiers', Float32MultiArray, queue_size=10)
 
@@ -34,6 +37,7 @@ class Uncharter:
         self.timer = rospy.Timer(rospy.Duration(1.0), self.publish_current_frontiers)
 
     def map_callback(self, msg):
+        print('called back')
         self.resolution = msg.info.resolution
         self.x_origin = msg.info.origin.position.x
         self.y_origin = msg.info.origin.position.y
@@ -91,8 +95,8 @@ class Uncharter:
                     pass
         
         self.all_pts = all_pts
-        cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
-        cv2.waitKey(1)
+        # cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
+        # cv2.waitKey(1)
 
     def publish_current_frontiers(self,event:TimerEvent):
         if self.all_pts is not None and np.size(self.all_pts) > 1:
@@ -100,13 +104,15 @@ class Uncharter:
             if np.size(self.all_pts) > 2:
                 pub_msg.data = self.all_pts.flatten()
             else:
-                pub_msg.data = self.all_pts
+                pub_msg.data = np.array(self.all_pts).flatten()
             pub_msg.layout.dim = [MultiArrayDimension(), MultiArrayDimension()]
             pub_msg.layout.dim[0].label = "points"
             pub_msg.layout.dim[0].size = np.shape(self.all_pts)[0]
             pub_msg.layout.dim[1].label = "dimensions"
             pub_msg.layout.dim[1].size = np.shape(self.all_pts)[1]
+            print(type(pub_msg.data))
             self.frontier_pub.publish(pub_msg)
+            rospy.loginfo(pub_msg)
 
     def run(self):
         rospy.spin()

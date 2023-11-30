@@ -54,6 +54,14 @@ class Explorer:
                     rospy.loginfo("Goal reached, selecting new goal.")
 
     def navigate_to_frontier(self):
+        
+        goal_msg = PoseStamped()
+        goal_msg.header.stamp = rospy.Time.now()
+        if self.ns == "":
+            goal_msg.header.frame_id = 'map'
+        else:
+            goal_msg.header.frame_id = self.ns + '/map'
+        goal_msg.pose.orientation.w = 1.0
 
         # Extract the x, y positions from the frontiers array
         frontiers_positions = self.frontiers[:, :2]
@@ -71,10 +79,6 @@ class Explorer:
             random_x = self.robot_pose.position.x + radius * np.cos(theta)
             random_y = self.robot_pose.position.y + radius * np.sin(theta)
 
-            goal_msg = PoseStamped()
-            goal_msg.header.stamp = rospy.Time.now()
-            goal_msg.header.frame_id = 'map'
-            goal_msg.pose.orientation.w = 1.0
             goal_msg.pose.position.x = random_x
             goal_msg.pose.position.y = random_y
             
@@ -94,10 +98,6 @@ class Explorer:
             # Extract the x, y position of the closest frontier
             closest_frontier_position = frontiers_positions[closest_frontier_index]
 
-            goal_msg = PoseStamped()
-            goal_msg.header.stamp = rospy.Time.now()
-            goal_msg.header.frame_id = 'map'
-            goal_msg.pose.orientation.w = 1.0
             goal_msg.pose.position.x = closest_frontier_position[0]
             goal_msg.pose.position.y = closest_frontier_position[1]
 
