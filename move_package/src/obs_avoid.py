@@ -3,10 +3,10 @@
 import rospy
 import numpy as np
 import sys
+import random
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, PoseArray
 from sensor_msgs.msg import LaserScan
-import random
 
 class DroneAvoider:
     def __init__(self, ns):
@@ -25,6 +25,8 @@ class DroneAvoider:
         self.robot_pose = None
         self.other_drones_positions = []
         self.obstacle_force = np.array([0.0, 0.0])
+        self.in_repulsion_radius = False  # Flag for being in the repulsion radius
+        self.initial_move = False  # Flag for initial movement
 
     def odometry_callback(self, msg):
         rospy.loginfo(f"{self.ns} Odometry callback triggered")
@@ -38,8 +40,8 @@ class DroneAvoider:
         rospy.loginfo(f"{self.ns} Other Drones' Positions: {self.other_drones_positions}")
 
     def scan_callback(self, msg):
-        # Process the laser scan data to detect obstacles and calculate repulsive force
         self.calculate_obstacle_force(msg)
+
 
     def calculate_obstacle_force(self, msg):
         # Example implementation of obstacle force calculation based on laser scan data
@@ -47,7 +49,7 @@ class DroneAvoider:
         direction = np.array([0.0, 0.0])
 
         # Threshold distance for obstacle repulsion
-        threshold_distance = 0.5
+        threshold_distance = 1
 
         for i, distance in enumerate(msg.ranges):
             if distance < threshold_distance:
@@ -68,34 +70,52 @@ class DroneAvoider:
     def calculate_repulsive_force(self):
         repulsive_force = np.array([0.0, 0.0])
         repulsion_radius = 0.9
+        in_radius = False
 
         for other_drone in self.other_drones_positions:
             distance = np.linalg.norm(np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - 
                                       np.array([other_drone.position.x, other_drone.position.y]))
 
             if distance < repulsion_radius:
+                in_radius = True
                 force = (1 / distance - 1 / repulsion_radius) / distance ** 2
                 direction = np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - \
                             np.array([other_drone.position.x, other_drone.position.y])
                 repulsive_force += force * direction
 
-        return repulsive_force
+        return repulsive_force, in_radius
 
     def calculate_and_move(self):
         if not self.robot_pose:
             return
 
-        drone_force = self.calculate_repulsive_force()
+        drone_force, drone_in_radius = self.calculate_repulsive_force()
         combined_force = drone_force + self.obstacle_force
 
         cmd_vel_msg = Twist()
-        if np.linalg.norm(combined_force) != 0:
-            combined_force /= np.linalg.norm(combined_force)
+
+        # Check if there's any force from drones or obstacles
+        if np.linalg.norm(drone_force) > 0 or np.linalg.norm(self.obstacle_force) > 0:
+            self.in_repulsion_radius = True
+            combined_force /= (np.linalg.norm(combined_force) + 1e-6)  # Normalize and avoid division by zero
             cmd_vel_msg.linear.x = combined_force[0]
             cmd_vel_msg.linear.y = combined_force[1]
+        else:
+            self.in_repulsion_radius = False
+
+        # If not in repulsion radius and not in initial movement, stop the drone
+        if not self.in_repulsion_radius and not self.initial_move:
+            cmd_vel_msg.linear.x = 0
+            cmd_vel_msg.linear.y = 0
+        elif self.initial_move:
+            # If it's the initial move, set a random direction
+            cmd_vel_msg.linear.x = random.uniform(-0.5, 0.5)
+            cmd_vel_msg.linear.y = random.uniform(-0.5, 0.5)
+            self.initial_move = False
 
         rospy.loginfo(f"{self.ns} Publishing cmd_vel: linear x: {cmd_vel_msg.linear.x}, linear y: {cmd_vel_msg.linear.y}")
         self.cmd_vel_pub.publish(cmd_vel_msg)
+
 
     def run(self):
         rospy.spin()
