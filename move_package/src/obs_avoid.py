@@ -1,101 +1,80 @@
 #!/usr/bin/env python3
 
 import rospy
-import sys
-from geometry_msgs.msg import Twist
-from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import OccupancyGrid, Odometry
 import numpy as np
-import math
+import sys
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist, PoseArray
 
 class DroneAvoider:
-    def __init__(self, ns, other_drones):
-        self.ns = "" if ns == "none" else ns
-        rospy.init_node(self.ns + '_drone_avoider', anonymous=True)
+    def __init__(self, ns):
+        self.ns = ns
+        rospy.init_node(self.ns + '_drone_avoider', anonymous=False)
 
-        # Publishers and Subscribers
+        # Subscribers
+        rospy.Subscriber(self.ns + '/ground_truth/state', Odometry, self.odometry_callback)
+        rospy.Subscriber('/drones_positions', PoseArray, self.drones_positions_callback)
+
+        # Publisher for cmd_vel
         self.cmd_vel_pub = rospy.Publisher(self.ns + '/cmd_vel', Twist, queue_size=10)
-        rospy.Subscriber(self.ns + '/scan', LaserScan, self.scan_callback)
-        rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
-        self.my_odom_sub = rospy.Subscriber(self.ns + '/odom', Odometry, self.my_odom_callback)
 
-        # Parameters
-        self.repulsive_strength = 1.0
-        self.obstacle_distance_threshold = 1.0
-        self.drone_distance_threshold = 1.0
-        self.my_position = None
-        self.other_drones_positions = {}
+        # Variables
+        self.robot_pose = None
+        self.other_drones_positions = []
 
-        # Subscribe to other drones' positions
-        for drone in other_drones:
-            rospy.Subscriber(drone + '/odom', Odometry, self.other_drones_callback, drone)
+    def odometry_callback(self, msg):
+        rospy.loginfo(f"{self.ns} Odometry callback triggered")
+        rospy.loginfo(f"{self.ns} Current Pose: {msg.pose.pose}")
+        self.robot_pose = msg.pose.pose
+        self.calculate_and_move()
 
-    def my_odom_callback(self, msg):
-        self.my_position = msg.pose.pose.position
+    def drones_positions_callback(self, msg):
+        rospy.loginfo(f"{self.ns} Drones positions callback triggered")
+        # Directly assign the positions from the message to other_drones_positions
+        self.other_drones_positions = [pose for pose in msg.poses]
+        rospy.loginfo(f"{self.ns} Other Drones' Positions: {self.other_drones_positions}")
 
-    def other_drones_callback(self, msg, drone_ns):
-        self.other_drones_positions[drone_ns] = msg.pose.pose.position
+    def calculate_repulsive_force(self):
+        repulsive_force = np.array([0.0, 0.0])
+        repulsion_radius = 1.0  # Adjust this value as needed
 
-    def scan_callback(self, msg):
-        force_x, force_y = 0, 0
-        for i, distance in enumerate(msg.ranges):
-            if distance < self.obstacle_distance_threshold:
-                angle = i * msg.angle_increment + msg.angle_min
-                force_magnitude = self.repulsive_strength / (distance ** 2)
-                force_x += force_magnitude * math.cos(angle)
-                force_y += force_magnitude * math.sin(angle)
+        for other_drone in self.other_drones_positions:
+            distance = np.linalg.norm(np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - 
+                                      np.array([other_drone.position.x, other_drone.position.y]))
+            rospy.loginfo(f"{self.ns} Distance to other drone: {distance}")
 
-        # Combine forces from drones
-        drone_force_x, drone_force_y = self.check_and_avoid_drones()
-        total_force_x = force_x + drone_force_x
-        total_force_y = force_y + drone_force_y
+            if distance < repulsion_radius:
+                force = (1 / distance - 1 / repulsion_radius) / distance**2
+                direction = np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - \
+                            np.array([other_drone.position.x, other_drone.position.y])
+                repulsive_force += force * direction
+            else:
+                rospy.loginfo(f"{self.ns} Other drone outside repulsion radius: Distance = {distance}")
 
-        # Apply combined forces
-        self.apply_repulsive_force((total_force_x, total_force_y))
+        rospy.loginfo(f"{self.ns} Calculated repulsive force: {repulsive_force}")
+        return repulsive_force
 
-    def map_callback(self, msg):
-        self.resolution = msg.info.resolution
-        self.origin = msg.info.origin.position
-        self.width = msg.info.width
-        self.height = msg.info.height
-        self.map_data = np.array(msg.data, dtype=np.int8).reshape((self.height, self.width))
+    def calculate_and_move(self):
+        if not self.robot_pose:
+            return
 
-    def check_and_avoid_drones(self):
-        force_x, force_y = 0, 0
-        for drone_ns, position in self.other_drones_positions.items():
-            if self.is_close_to_drone(position):
-                drone_force = self.calculate_drone_avoidance_force(position)
-                force_x += drone_force[0]
-                force_y += drone_force[1]
-        return force_x, force_y
+        repulsive_force = self.calculate_repulsive_force()
 
-    def is_close_to_drone(self, drone_position):
-        if self.my_position is None:
-            return False
-        distance = math.sqrt((self.my_position.x - drone_position.x) ** 2 +
-                             (self.my_position.y - drone_position.y) ** 2 +
-                             (self.my_position.z - drone_position.z) ** 2)
-        return distance < self.drone_distance_threshold
+        # Normalize the repulsive force to get the direction of movement
+        if np.linalg.norm(repulsive_force) != 0:
+            repulsive_force /= np.linalg.norm(repulsive_force)
+            cmd_vel_msg = Twist()
+            cmd_vel_msg.linear.x = repulsive_force[0]
+            cmd_vel_msg.linear.y = repulsive_force[1]
 
-    def calculate_drone_avoidance_force(self, drone_position):
-        relative_x = drone_position.x - self.my_position.x
-        relative_y = drone_position.y - self.my_position.y
-        distance = math.sqrt(relative_x ** 2 + relative_y ** 2)
-        force_magnitude = self.repulsive_strength / (distance ** 2)
-        force_angle = math.atan2(relative_y, relative_x) + math.pi
-        return force_magnitude * math.cos(force_angle), force_magnitude * math.sin(force_angle)
-
-    def apply_repulsive_force(self, force):
-        cmd_vel_msg = Twist()
-        cmd_vel_msg.linear.x = force[0]
-        cmd_vel_msg.linear.y = force[1]
-        self.cmd_vel_pub.publish(cmd_vel_msg)
+            # Publish the Twist message to the cmd_vel topic
+            rospy.loginfo(f"{self.ns} Publishing cmd_vel: linear x: {cmd_vel_msg.linear.x}, linear y: {cmd_vel_msg.linear.y}")
+            self.cmd_vel_pub.publish(cmd_vel_msg)
 
     def run(self):
         rospy.spin()
 
 if __name__ == '__main__':
-    ns = sys.argv[1] if len(sys.argv) >= 2 else "none"
-    other_drones = ['uav1', 'uav2']  # Example other drones
-    drone_avoider = DroneAvoider(ns, other_drones)
+    ns = sys.argv[1] if len(sys.argv) >= 2 else ""
+    drone_avoider = DroneAvoider(ns)
     drone_avoider.run()
