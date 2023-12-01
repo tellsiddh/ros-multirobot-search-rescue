@@ -36,14 +36,16 @@ class DroneAvoider:
 
     def calculate_repulsive_force(self):
         repulsive_force = np.array([0.0, 0.0])
-        repulsion_radius = 1.0  # Adjust this value as needed
+        repulsion_radius = 0.9  # Adjust this value as needed
+        drone_in_radius = False  # Flag to check if any drone is within the radius
 
         for other_drone in self.other_drones_positions:
             distance = np.linalg.norm(np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - 
-                                      np.array([other_drone.position.x, other_drone.position.y]))
+                                    np.array([other_drone.position.x, other_drone.position.y]))
             rospy.loginfo(f"{self.ns} Distance to other drone: {distance}")
 
             if distance < repulsion_radius:
+                drone_in_radius = True
                 force = (1 / distance - 1 / repulsion_radius) / distance**2
                 direction = np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - \
                             np.array([other_drone.position.x, other_drone.position.y])
@@ -52,24 +54,30 @@ class DroneAvoider:
                 rospy.loginfo(f"{self.ns} Other drone outside repulsion radius: Distance = {distance}")
 
         rospy.loginfo(f"{self.ns} Calculated repulsive force: {repulsive_force}")
-        return repulsive_force
+        return repulsive_force, drone_in_radius
 
     def calculate_and_move(self):
         if not self.robot_pose:
             return
 
-        repulsive_force = self.calculate_repulsive_force()
+        repulsive_force, drone_in_radius = self.calculate_repulsive_force()
 
-        # Normalize the repulsive force to get the direction of movement
-        if np.linalg.norm(repulsive_force) != 0:
-            repulsive_force /= np.linalg.norm(repulsive_force)
-            cmd_vel_msg = Twist()
-            cmd_vel_msg.linear.x = repulsive_force[0]
-            cmd_vel_msg.linear.y = repulsive_force[1]
+        cmd_vel_msg = Twist()
+        if drone_in_radius:
+            # Normalize the repulsive force to get the direction of movement
+            if np.linalg.norm(repulsive_force) != 0:
+                repulsive_force /= np.linalg.norm(repulsive_force)
+                cmd_vel_msg.linear.x = repulsive_force[0]
+                cmd_vel_msg.linear.y = repulsive_force[1]
+        else:
+            # Stop the drone if no other drones are within the repulsion radius
+            cmd_vel_msg.linear.x = 0
+            cmd_vel_msg.linear.y = 0
 
-            # Publish the Twist message to the cmd_vel topic
-            rospy.loginfo(f"{self.ns} Publishing cmd_vel: linear x: {cmd_vel_msg.linear.x}, linear y: {cmd_vel_msg.linear.y}")
-            self.cmd_vel_pub.publish(cmd_vel_msg)
+        # Publish the Twist message to the cmd_vel topic
+        rospy.loginfo(f"{self.ns} Publishing cmd_vel: linear x: {cmd_vel_msg.linear.x}, linear y: {cmd_vel_msg.linear.y}")
+        self.cmd_vel_pub.publish(cmd_vel_msg)
+
 
     def run(self):
         rospy.spin()
