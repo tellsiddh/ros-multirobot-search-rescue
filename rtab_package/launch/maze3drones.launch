@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <include file="$(find rtab_package)/launch/maze.launch"> </include>
+  <include file="$(find rtab_package)/launch/spawn3drones.launch"> </include>
+
+  <node
+        name = "lifter"
+        pkg = "move_package"
+        type = "liftoff.py"    
+        output = "screen"
+        args = "none 0.5"
+    >
+  </node>
+
+  <node
+        name = "uav1lifter"
+        pkg = "move_package"
+        type = "liftoff.py"    
+        output = "screen"
+        args = "uav1 0.5" 
+    >
+  </node>
+
+  <node
+        name = "uav2lifter"
+        pkg = "move_package"
+        type = "liftoff.py"    
+        output = "screen"
+        args = "uav2 0.5" 
+    >
+  </node>
+
+    <node
+        name = "drones_positions_publisher"
+        pkg = "move_package"
+        type = "publish_drones_positions.py"    
+        output = "screen"
+    >
+  </node>
+
+</launch>
