@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import rospy
 from std_msgs.msg import Float32MultiArray
 from nav_msgs.msg import Odometry
 from actionlib_msgs.msg import GoalStatusArray
-from geometry_msgs.msg import PoseStamped, PoseArray
+from geometry_msgs.msg import PoseStamped
 import numpy as np
 import sys
 
@@ -14,15 +13,12 @@ class Explorer:
         self.ns = ns
         rospy.init_node(self.ns + 'explorer', anonymous=False)
 
-        # Existing subscribers
+        # Create subscribers for the odometry, frontiers, and move_base status topics
         rospy.Subscriber(self.ns + '/ground_truth/state', Odometry, self.odometry_callback)
         rospy.Subscriber(self.ns + '/frontiers', Float32MultiArray, self.frontiers_callback)
         rospy.Subscriber(self.ns + '/move_base/status', GoalStatusArray, self.move_base_status_callback)
 
-        # New subscriber for positions of other drones
-        rospy.Subscriber('/drones_positions', PoseArray, self.drones_positions_callback)
-
-        # Existing publisher
+        # Create a publisher for the goal
         self.goal_publisher = rospy.Publisher(self.ns + '/move_base_simple/goal', PoseStamped, queue_size=10)
 
         # Initialize variables
@@ -30,26 +26,33 @@ class Explorer:
         self.frontiers = None
         self.current_goal = None
         self.blacklist = set()
-        self.other_drones_positions = []
 
-    # Existing callback methods...
+    def odometry_callback(self, msg):
+        self.robot_pose = msg.pose.pose
+        if self.frontiers is not None and self.current_goal is None:
+            self.navigate_to_frontier()
 
-    def drones_positions_callback(self, msg):
-        # Update the positions of other drones
-        self.other_drones_positions = [pose.pose for pose in msg.poses if pose.header.frame_id != self.ns]
+    def frontiers_callback(self, msg):
+        # Reshape the frontiers array based on the given dim sizes
+        dim_sizes = msg.layout.dim
+        reshaped_frontiers = np.array(msg.data).reshape(dim_sizes[0].size, dim_sizes[1].size)
 
-    def calculate_repulsive_force(self):
-        # Define parameters for the repulsive force calculation
-        repulsive_force = np.array([0.0, 0.0])
-        repulsion_radius = 5.0  # Adjust as necessary
+        self.frontiers = reshaped_frontiers
 
-        for other_drone in self.other_drones_positions:
-            distance = np.linalg.norm(np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - np.array([other_drone.position.x, other_drone.position.y]))
-            if distance < repulsion_radius:
-                # Calculate repulsive force
-                repulsive_force += (1 / distance - 1 / repulsion_radius) * (np.array([self.robot_pose.position.x, self.robot_pose.position.y]) - np.array([other_drone.position.x, other_drone.position.y])) / distance**2
+    def move_base_status_callback(self, msg):
+        # Check if move_base is in recovery behavior
+        if msg.status_list:
+            if msg.status_list[0].status == 4:  # 4 corresponds to RECOVERY status
+                if self.current_goal is not None:
+                    self.blacklist.add(tuple(self.current_goal))
+                    self.current_goal = None
+                    rospy.logwarn("Stuck, selecting new goal.")
+            if msg.status_list[0].status == 3:  # 3 corresponds to SUCCEEDED status
+                if self.current_goal is not None:
+                    self.blacklist.add(tuple(self.current_goal))
+                    self.current_goal = None
+                    rospy.loginfo("Goal reached, selecting new goal.")
 
-        return repulsive_force
     def navigate_to_frontier(self):
 
         # Extract the x, y positions from the frontiers array
@@ -105,99 +108,6 @@ class Explorer:
             rospy.loginfo("{} navigating to frontier: {}".format(self.ns, str(self.current_goal)))
         
         rospy.sleep(5)
-    def navigate_to_frontier(self):
-        # ... Existing navigation code ...
-
-        # Calculate repulsive force
-        repulsive_force = self.calculate_repulsive_force()
-
-        # Combine repulsive force with attractive force towards the frontier
-        attractive_force = np.array([closest_frontier_position[0] - self.robot_pose.position.x, closest_frontier_position[1] - self.robot_pose.position.y])
-        combined_force = attractive_force - repulsive_force
-
-        # Normalize the combined force for consistent movement
-        combined_force /= np.linalg.norm(combined_force)
-
-        # Set a new goal based on the combined force
-        new_goal_x = self.robot_pose.position.x + combined_force[0]
-        new_goal_y = self.robot_pose.position.y + combined_force[1]
-
-        goal_msg = PoseStamped()
-        goal_msg.header.stamp = rospy.Time.now()
-        goal_msg.header.frame_id = 'map'
-        goal_msg.pose.orientation.w = 1.0
-        goal_msg.pose.position.x = new_goal_x
-        goal_msg.pose.position.y = new_goal_y
-
-        self.goal_publisher.publish(goal_msg)
-
-        # Update the current_goal
-        self.current_goal = np.array([new_goal_x, new_goal_y])
-        rospy.loginfo("{} navigating to new goal: {}".format(self.ns, str(self.current_goal)))
-
-    # ... Remaining class methods ...
-
-if __name__ == '__main__':
-    ns = sys.argv[1] if len(sys.argv) >= 2 else ""
-    Explorer(ns).run()
-
-
-
-
-import rospy
-from std_msgs.msg import Float32MultiArray
-from nav_msgs.msg import Odometry
-from actionlib_msgs.msg import GoalStatusArray
-from geometry_msgs.msg import PoseStamped
-import numpy as np
-import sys
-
-class Explorer:
-    def __init__(self, ns):
-        self.ns = ns
-        rospy.init_node(self.ns + 'explorer', anonymous=False)
-
-        # Create subscribers for the odometry, frontiers, and move_base status topics
-        rospy.Subscriber(self.ns + '/ground_truth/state', Odometry, self.odometry_callback)
-        rospy.Subscriber(self.ns + '/frontiers', Float32MultiArray, self.frontiers_callback)
-        rospy.Subscriber(self.ns + '/move_base/status', GoalStatusArray, self.move_base_status_callback)
-
-        # Create a publisher for the goal
-        self.goal_publisher = rospy.Publisher(self.ns + '/move_base_simple/goal', PoseStamped, queue_size=10)
-
-        # Initialize variables
-        self.robot_pose = None
-        self.frontiers = None
-        self.current_goal = None
-        self.blacklist = set()
-
-    def odometry_callback(self, msg):
-        self.robot_pose = msg.pose.pose
-        if self.frontiers is not None and self.current_goal is None:
-            self.navigate_to_frontier()
-
-    def frontiers_callback(self, msg):
-        # Reshape the frontiers array based on the given dim sizes
-        dim_sizes = msg.layout.dim
-        reshaped_frontiers = np.array(msg.data).reshape(dim_sizes[0].size, dim_sizes[1].size)
-
-        self.frontiers = reshaped_frontiers
-
-    def move_base_status_callback(self, msg):
-        # Check if move_base is in recovery behavior
-        if msg.status_list:
-            if msg.status_list[0].status == 4:  # 4 corresponds to RECOVERY status
-                if self.current_goal is not None:
-                    self.blacklist.add(tuple(self.current_goal))
-                    self.current_goal = None
-                    rospy.logwarn("Stuck, selecting new goal.")
-            if msg.status_list[0].status == 3:  # 3 corresponds to SUCCEEDED status
-                if self.current_goal is not None:
-                    self.blacklist.add(tuple(self.current_goal))
-                    self.current_goal = None
-                    rospy.loginfo("Goal reached, selecting new goal.")
-
-
 
     def distance_to_goal(self, goal):
         # Calculate the Euclidean distance from the robot to the goal

@@ -103,6 +103,8 @@ class PotentialFieldController:
 if __name__ == "__main__":
 
     ns = sys.argv[1] if len(sys.argv) >= 2 else ""
+    if ns == 'none':
+        ns = ""
 
     rospy.init_node(ns + 'potential_field_controller')
 

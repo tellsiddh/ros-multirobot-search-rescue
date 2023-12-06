@@ -10,15 +10,20 @@ class DronesPositionsPublisher:
         rospy.init_node('drones_positions_publisher', anonymous=True)
 
         # Initialize subscribers to the drones' odometry topics
-        rospy.Subscriber('/uav1/odometry', Odometry, self.uav1_odometry_callback)
-        rospy.Subscriber('/uav2/odometry', Odometry, self.uav2_odometry_callback)
+        rospy.Subscriber('/ground_truth/state', Odometry, self.none_odometry_callback)
+        rospy.Subscriber('/uav1/ground_truth/state', Odometry, self.uav1_odometry_callback)
+        rospy.Subscriber('/uav2/ground_truth/state', Odometry, self.uav2_odometry_callback)
 
         # Initialize publisher for drones_positions
         self.pub = rospy.Publisher('/drones_positions', PoseArray, queue_size=10)
 
         # Variables to hold drone positions
-        self.uav1_pose = Pose()
-        self.uav2_pose = Pose()
+        self.none_pose = None
+        self.uav1_pose = None
+        self.uav2_pose = None
+
+    def none_odometry_callback(self, msg):
+        self.none_pose = msg.pose.pose
 
     def uav1_odometry_callback(self, msg):
         self.uav1_pose = msg.pose.pose
@@ -33,11 +38,13 @@ class DronesPositionsPublisher:
             pose_array = PoseArray()
 
             # Add UAVs' poses to the PoseArray
-            pose_array.poses.append(self.uav1_pose)
-            pose_array.poses.append(self.uav2_pose)
+            if self.none_pose is not None and self.uav1_pose is not None and self.uav2_pose is not None:
+                pose_array.poses.append(self.none_pose)
+                pose_array.poses.append(self.uav1_pose)
+                pose_array.poses.append(self.uav2_pose)
 
-            # Publish the PoseArray
-            self.pub.publish(pose_array)
+                # Publish the PoseArray
+                self.pub.publish(pose_array)
 
             rate.sleep()
 

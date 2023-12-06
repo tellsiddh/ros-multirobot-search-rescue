@@ -1,0 +1,42 @@
+<launch>
+
+  <node
+        name = "scan_filter_node"
+        pkg = "move_package"
+        type = "filter_scan.py"    
+        output = "screen"
+        args = "none 60"
+    >
+  </node>
+
+  <node
+        name = "uav1scan_filter_node"
+        pkg = "move_package"
+        type = "filter_scan.py"    
+        output = "screen"
+        args = "uav1 60"
+    >
+  </node>
+
+  <node
+        name = "uav2scan_filter_node"
+        pkg = "move_package"
+        type = "filter_scan.py"    
+        output = "screen"
+        args = "uav2 60"
+    >
+  </node>
+
+  <include file="$(find rtab_package)/launch/leader_mapping.launch"> </include>
+  
+  <include file="$(find rtab_package)/launch/trooper_mapping.launch"> 
+    <arg name="ns" value="uav1"/>
+    <arg name="database_path" value="rtabmap_1.db"/>
+  </include>
+
+  <include file="$(find rtab_package)/launch/trooper_mapping.launch"> 
+    <arg name="ns" value="uav2"/>
+    <arg name="database_path" value="rtabmap_2.db"/>
+  </include>
+
+</launch>

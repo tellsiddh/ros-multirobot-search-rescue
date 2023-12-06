@@ -32,7 +32,7 @@
     >
   </node>
 
-    <node
+  <node
         name = "drones_positions_publisher"
         pkg = "move_package"
         type = "publish_drones_positions.py"    
