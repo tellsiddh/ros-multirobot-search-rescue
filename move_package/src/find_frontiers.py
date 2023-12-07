@@ -17,7 +17,10 @@ class Uncharter:
         rospy.init_node(self.ns + 'uncharter', anonymous=False)
 
         # Create subscribers for the map and initialpose topics
-        rospy.Subscriber(self.ns + '/map', OccupancyGrid, self.map_callback)
+        if self.ns == "":
+            rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        else:
+            rospy.Subscriber('rtabmap/' + self.ns + '/map', OccupancyGrid, self.map_callback)
 
         self.frontier_pub = rospy.Publisher(self.ns + '/frontiers', Float32MultiArray, queue_size=10)
 
@@ -91,8 +94,8 @@ class Uncharter:
                     pass
         
         self.all_pts = all_pts
-        cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
-        cv2.waitKey(1)
+        # cv2.imshow(self.ns + '/map + ' + self.ns + '/frontiers', img)
+        # cv2.waitKey(1)
 
     def publish_current_frontiers(self,event:TimerEvent):
         if self.all_pts is not None and np.size(self.all_pts) > 1:
@@ -107,6 +110,9 @@ class Uncharter:
             pub_msg.layout.dim[1].label = "dimensions"
             pub_msg.layout.dim[1].size = np.shape(self.all_pts)[1]
             self.frontier_pub.publish(pub_msg)
+            print(self.ns + ' found ' + str(np.shape(self.all_pts)[0]) + ' frontiers')
+        else:
+            print(self.ns + ' waiting for frontiers')
 
     def run(self):
         rospy.spin()

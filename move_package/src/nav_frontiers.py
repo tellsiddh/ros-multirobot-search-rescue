@@ -6,20 +6,18 @@ from nav_msgs.msg import Odometry
 from actionlib_msgs.msg import GoalStatusArray
 from geometry_msgs.msg import PoseStamped
 import numpy as np
-import sys
 
 class Explorer:
-    def __init__(self, ns):
-        self.ns = ns
-        rospy.init_node(self.ns + 'explorer', anonymous=False)
+    def __init__(self):
+        rospy.init_node('explorer', anonymous=False)
 
         # Create subscribers for the odometry, frontiers, and move_base status topics
-        rospy.Subscriber(self.ns + '/ground_truth/state', Odometry, self.odometry_callback)
-        rospy.Subscriber(self.ns + '/frontiers', Float32MultiArray, self.frontiers_callback)
-        rospy.Subscriber(self.ns + '/move_base/status', GoalStatusArray, self.move_base_status_callback)
+        rospy.Subscriber('/ground_truth/state', Odometry, self.odometry_callback)
+        rospy.Subscriber('/frontiers', Float32MultiArray, self.frontiers_callback)
+        rospy.Subscriber('/move_base/status', GoalStatusArray, self.move_base_status_callback)
 
         # Create a publisher for the goal
-        self.goal_publisher = rospy.Publisher(self.ns + '/move_base_simple/goal', PoseStamped, queue_size=10)
+        self.goal_publisher = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 
         # Initialize variables
         self.robot_pose = None
@@ -105,7 +103,7 @@ class Explorer:
 
             # Update the current_goal
             self.current_goal = closest_frontier_position
-            rospy.loginfo("{} navigating to frontier: {}".format(self.ns, str(self.current_goal)))
+            rospy.loginfo("navigating to frontier: {}".format(str(self.current_goal)))
         
         rospy.sleep(5)
 
@@ -117,5 +115,5 @@ class Explorer:
         rospy.spin()
 
 if __name__ == '__main__':
-    ns = sys.argv[1] if len(sys.argv) >= 2 else ""
-    Explorer(ns).run()
+
+    Explorer().run()
