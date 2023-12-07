@@ -24,7 +24,7 @@ class PotentialFieldController:
         self.obstacle_angle = None
 
         self.frontiers = None
-        self.k_att = 0
+        self.k_att = 1
         self.blacklist = set()
         self.current_goal = None
         self.reach_thresh = 1
@@ -204,21 +204,21 @@ class PotentialFieldController:
     def run(self):
         while not rospy.is_shutdown():
             if self.current_goal is None:
-                # twist = Twist()
-                # twist.angular.z = 1.0  # You can adjust the angular velocity as needed
-                # for i in range(0,3):
-                #     self.vel_pub.publish(twist)
+                twist = Twist()
+                twist.angular.z = np.random.choice([-1,1])  # You can adjust the angular velocity as needed
+                for i in range(0,3):
+                    self.vel_pub.publish(twist)
 
-                # # Wait for a short duration to allow the robot to rotate
-                # time.sleep(2.0)  # You can adjust the duration as needed
+                # Wait for a short duration to allow the robot to rotate
+                time.sleep(np.random.randint(3,7))  # You can adjust the duration as needed
 
                 # # Check orientation.z to determine when a full 360 degrees rotation is completed
                 # while abs(self.robot_pose.orientation.z) > 0.1:  # Adjust the threshold as needed
                 #     print(self.robot_pose.orientation.z)
 
-                # twist.angular.z = 0.0  # Stop the rotation
-                # for i in range(0,3):
-                #     self.vel_pub.publish(twist)
+                twist.angular.z = 0.0  # Stop the rotation
+                for i in range(0,3):
+                    self.vel_pub.publish(twist)
                 self.set_goal()
 
             if self.current_goal is not None:

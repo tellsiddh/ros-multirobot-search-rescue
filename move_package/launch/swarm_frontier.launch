@@ -29,22 +29,22 @@
     >
   </node>
 
-  <!-- <node
+  <node
         name = "explorer"
         pkg = "move_package"
         type = "nav_frontiers.py"    
         output = "screen"
     >
-  </node> -->
+  </node>
 
-  <node
+  <!-- <node
         name = "potential_field_controller"
         pkg = "move_package"
         type = "pot_frontiers.py"    
         output = "screen"
         args = "none"
     >
-  </node>
+  </node> -->
 
   <node
         name = "uav1potential_field_controller"
