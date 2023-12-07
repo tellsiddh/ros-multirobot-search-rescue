@@ -20,4 +20,7 @@
     <param name="estimation_confidence" value="1.0"/>
   </node>
 </group>
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find rtab_package)/rviz/map_merge.rviz"/>
+
 </launch>

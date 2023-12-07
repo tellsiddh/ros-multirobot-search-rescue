@@ -21,6 +21,7 @@ class Uncharter:
             rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         else:
             rospy.Subscriber('rtabmap/' + self.ns + '/map', OccupancyGrid, self.map_callback)
+            # rospy.Subscriber('map_merge/map', OccupancyGrid, self.map_callback)
 
         self.frontier_pub = rospy.Publisher(self.ns + '/frontiers', Float32MultiArray, queue_size=10)
 
@@ -120,5 +121,7 @@ class Uncharter:
 if __name__ == '__main__':
     
     ns = sys.argv[1] if len(sys.argv) >= 2 else ""
+    if ns == "none":
+        ns = ""
     
     Uncharter(ns).run()
