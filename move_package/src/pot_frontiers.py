@@ -15,7 +15,7 @@ class PotentialFieldController:
     def __init__(self, ns):
         self.ns = ns
         self.obstacle_range = 1
-        self.robot_range = 2
+        self.robot_range = 5
         self.k_rep = 5
         self.robot_pose = None
         self.other_robots = None
@@ -185,7 +185,7 @@ class PotentialFieldController:
                     self.robot_pose.orientation.z,
                     self.robot_pose.orientation.w]
         euler = tf.transformations.euler_from_quaternion(quaternion)
-        print(self.ns + ' euler[2]: ' + str(euler[2]))
+        #print(self.ns + ' euler[2]: ' + str(euler[2]))
         return euler[2]  # Yaw angle is the third element in the Euler angles
 
     def rotate_vector(self, vector, angle):
@@ -210,7 +210,7 @@ class PotentialFieldController:
                     self.vel_pub.publish(twist)
 
                 # Wait for a short duration to allow the robot to rotate
-                time.sleep(np.random.randint(3,7))  # You can adjust the duration as needed
+                rospy.sleep(np.random.randint(1,5))  # You can adjust the duration as needed
 
                 # # Check orientation.z to determine when a full 360 degrees rotation is completed
                 # while abs(self.robot_pose.orientation.z) > 0.1:  # Adjust the threshold as needed
@@ -230,8 +230,8 @@ class PotentialFieldController:
                     total_force /= 2
                 twist = Twist()
                 new_force = self.rotate_vector([total_force[1],-total_force[0]],self.get_robot_yaw())
-                print(self.ns + 'new_force: ' + str(new_force))
-                print(self.ns + 'old_force: ' + str([total_force[1],-total_force[0]]))
+                #print(self.ns + 'new_force: ' + str(new_force))
+                #print(self.ns + 'old_force: ' + str([total_force[1],-total_force[0]]))
                 # twist.linear.x = total_force[1] 
                 # twist.linear.y = -total_force[0]
                 twist.linear.x = new_force[0]
