@@ -1,8 +1,11 @@
 # ros-multirobot-search-rescue
 
-MultiRobot Simulation using Gazebo for Search and Rescue operations.
+MultiRobot Simulation using Python and Gazebo for Search and Rescue operations.
 
-## Swarm Mapping
+## Python only
+See algorithms folder.
+
+## Gazebo
 
 ### Dependencies
  Clone my fork of hector-quadrotor-noetic into your catkin workspace, as instructed here: https://github.com/anaammostafiz/hector-quadrotor-noetic
@@ -41,7 +44,7 @@ roslaunch move_package pot_spread3.launch
 roslaunch move_package swarm_frontier.launch
 ```
 
-4. Visualize the 2D exploration in rviz.
+4. Visualize the 2D exploration in rviz. You may need to move the rviz view to find the drones.
 ```sh
 roslaunch move_package swarm_rviz.launch
 ```
