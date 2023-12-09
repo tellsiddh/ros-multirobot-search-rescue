@@ -50,6 +50,6 @@ roslaunch move_package swarm_rviz.launch
 ```
 
 ### Post-processing
-The .db files containing 2D, 3D, and image data are stored in your ~/.ros folder. To view, merge, and export the results, follow this tutorial: https://github.com/introlab/rtabmap/wiki/Multi-Session-Mapping-with-RTAB-Map-Tango.
+The .db files containing 2D, 3D, and image data are stored in your ~/.ros folder. To view, merge, and export the results, follow RTAB-Map tutorials.
 
 Note: On consecutive mapping sessions, make sure to move or delete the old .db files.

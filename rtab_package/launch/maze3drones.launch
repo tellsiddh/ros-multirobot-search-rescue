@@ -10,7 +10,7 @@
         pkg = "move_package"
         type = "liftoff.py"    
         output = "screen"
-        args = "none 0.5"
+        args = "none 2"
     >
   </node>
 
@@ -19,7 +19,7 @@
         pkg = "move_package"
         type = "liftoff.py"    
         output = "screen"
-        args = "uav1 0.5" 
+        args = "uav1 2" 
     >
   </node>
 
@@ -28,7 +28,7 @@
         pkg = "move_package"
         type = "liftoff.py"    
         output = "screen"
-        args = "uav2 0.5" 
+        args = "uav2 2" 
     >
   </node>
 
